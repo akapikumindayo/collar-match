@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Match Master Pro</title>
+    <style>
+        :root {
+            --bg-color: #f0f4f8;
+            --card-bg: #ffffff;
+            --text-main: #1a202c;
+            --accent: #4a90e2;
+            --r-color: #ff4757;
+            --g-color: #2ed573;
+            --b-color: #3742fa;
+            --h-color: #ffa502;
+            --s-color: #7bed9f;
+            --l-color: #ced6e0;
+        }
+
+        * {
+            cursor: none; /* カスタムカーソルのため標準を消す */
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* カスタムカーソル */
+        #custom-cursor {
+            position: fixed;
+            width: 24px;
+            height: 24px;
+            border: 3px solid white;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.1s, height 0.1s;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: var(--card-bg);
+            padding: 2.5rem;
+            border-radius: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+            position: relative;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            margin: 0;
+            background: linear-gradient(135deg, #4a90e2, #6366f1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* モード切替 */
+        .mode-selector {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 1rem;
+            font-weight: bold;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+
+        .slider-round {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider-round:before {
+            position: absolute;
+            content: "";
+            height: 16px; width: 16px;
+            left: 4px; bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider-round { background-color: #2d3748; }
+        input:checked + .slider-round:before { transform: translateX(26px); }
+
+        .comparison-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            height: 220px;
+            margin-bottom: 2rem;
+        }
+
+        .color-pane {
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            position: relative;
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* モノクロモード用のフィルタ */
+        .monochrome-mode {
+            filter: grayscale(100%) contrast(1.2) !important;
+        }
+
+        .pane-label {
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            background: rgba(0,0,0,0.25);
+            padding: 5px 15px;
+            border-radius: 50px;
+            margin-bottom: 10px;
+            backdrop-filter: blur(5px);
+            z-index: 1;
+        }
+
+        .pane-hex {
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 1.4rem;
+            font-weight: bold;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            z-index: 1;
+        }
+
+        .hidden-code {
+            filter: blur(8px);
+            opacity: 0.5;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .controls-grid { grid-template-columns: 1fr; }
+            .comparison-container { height: 150px; }
+        }
+
+        .control-section h3 {
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            color: #718096;
+            border-bottom: 2px solid #edf2f7;
+            padding-bottom: 5px;
+        }
+
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 12px;
+        }
+
+        .slider-row label {
+            width: 30px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 8px;
+            border-radius: 5px;
+            background: #edf2f7;
+            outline: none;
+            appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border: 2px solid #cbd5e0;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .val-badge {
+            width: 45px;
+            text-align: right;
+            font-family: monospace;
+            font-weight: bold;
+            color: #4a5568;
+        }
+
+        .result-area {
+            background: #f7fafc;
+            border-radius: 20px;
+            padding: 1.5rem;
+            text-align: center;
+            border: 2px solid #edf2f7;
+        }
+
+        .score-wrap {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        #match-score {
+            font-size: 3.5rem;
+            font-weight: 900;
+            color: var(--accent);
+            transition: all 0.5s ease;
+        }
+
+        .percent-symbol { font-size: 1.5rem; color: #a0aec0; font-weight: 800; }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
+
+        button {
+            padding: 12px 25px;
+            border-radius: 12px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1rem;
+        }
+
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-check { background: #2d3748; color: white; }
+
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
+        button:active { transform: translateY(0); }
+    </style>
+</head>
+<body>
+
+<div id="custom-cursor"></div>
+
+<div class="container">
+    <header>
+        <h1>COLOR MATCH MASTER PRO</h1>
+        <div class="mode-selector">
+            <span>NORMAL</span>
+            <label class="toggle-switch">
+                <input type="checkbox" id="monster-mode-toggle">
+                <span class="slider-round"></span>
+            </label>
+            <span>MONSTER (BW)</span>
+        </div>
+    </header>
+
+    <div class="comparison-container">
+        <div id="target-pane" class="color-pane">
+            <span class="pane-label">お題の色</span>
+            <span id="target-hex" class="pane-hex hidden-code">#??????</span>
+        </div>
+        <div id="user-pane" class="color-pane">
+            <span class="pane-label">あなたの色</span>
+            <span id="user-hex" class="pane-hex">#000000</span>
+        </div>
+    </div>
+
+    <div class="controls-grid">
+        <div class="control-section">
+            <h3>RGB MODE</h3>
+            <div class="slider-row">
+                <label>R</label>
+                <input type="range" id="r-slider" min="0" max="255" value="127">
+                <span id="r-val" class="val-badge">127</span>
+            </div>
+            <div class="slider-row">
+                <label>G</label>
+                <input type="range" id="g-slider" min="0" max="255" value="127">
+                <span id="g-val" class="val-badge">127</span>
+            </div>
+            <div class="slider-row">
+                <label>B</label>
+                <input type="range" id="b-slider" min="0" max="255" value="127">
+                <span id="b-val" class="val-badge">127</span>
+            </div>
+        </div>
+
+        <div class="control-section">
+            <h3>HSL MODE</h3>
+            <div class="slider-row">
+                <label>H</label>
+                <input type="range" id="h-slider" min="0" max="360" value="0">
+                <span id="h-val" class="val-badge">0°</span>
+            </div>
+            <div class="slider-row">
+                <label>S</label>
+                <input type="range" id="s-slider" min="0" max="100" value="0">
+                <span id="s-val" class="val-badge">0%</span>
+            </div>
+            <div class="slider-row">
+                <label>L</label>
+                <input type="range" id="l-slider" min="0" max="100" value="50">
+                <span id="l-val" class="val-badge">50%</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="result-area">
+        <div class="score-wrap">
+            <span id="match-score">??.?</span>
+            <span class="percent-symbol">% MATCH</span>
+        </div>
+        <div id="feedback-msg" style="margin-top: 10px; color: #718096; font-weight: bold;">お題に合わせて調整してください</div>
+        
+        <div class="button-group">
+            <button id="check-btn" class="btn-check" onclick="revealAnswer()">答え合わせ</button>
+            <button id="next-btn" class="btn-primary" onclick="initNewGame()">次のお題へ</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 状態管理
+    let target = { r: 0, g: 0, b: 0 };
+    let current = { r: 127, g: 127, b: 127 };
+    let isRevealed = false;
+    let bgmOsc = null;
+    let bgmGain = null;
+
+    // Audio Context の初期化
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    // BGMのセットアップ（低音のドローン音）
+    function setupBGM() {
+        if (bgmOsc) return;
+        bgmGain = audioCtx.createGain();
+        bgmGain.gain.setValueAtTime(0.02, audioCtx.currentTime);
+        bgmGain.connect(audioCtx.destination);
+
+        bgmOsc = audioCtx.createOscillator();
+        bgmOsc.type = 'sine';
+        bgmOsc.frequency.setValueAtTime(110, audioCtx.currentTime); // A2
+        bgmOsc.connect(bgmGain);
+        bgmOsc.start();
+
+        // 自分の色のR値に応じて音程を微調整してインタラクティブ感を出す
+        setInterval(() => {
+            if (audioCtx.state === 'suspended') return;
+            const targetFreq = 110 + (current.r / 15);
+            bgmOsc.frequency.exponentialRampToValueAtTime(targetFreq, audioCtx.currentTime + 1.5);
+        }, 1500);
+    }
+
+    // 効果音再生
+    function playSound(type, freq = 440, volume = 0.1, duration = 0.3) {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        setupBGM();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    }
+
+    // カスタムカーソルの追従ロジック
+    const cursor = document.getElementById('custom-cursor');
+    document.addEventListener('mousemove', (e) => {
+        cursor.style.left = e.clientX + 'px';
+        cursor.style.top = e.clientY + 'px';
+    });
+
+    document.addEventListener('mousedown', () => {
+        cursor.style.width = '18px';
+        cursor.style.height = '18px';
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+            setupBGM();
+        }
+    });
+
+    document.addEventListener('mouseup', () => {
+        cursor.style.width = '24px';
+        cursor.style.height = '24px';
+    });
+
+    // DOM要素の取得
+    const rgbSliders = {
+        r: document.getElementById('r-slider'),
+        g: document.getElementById('g-slider'),
+        b: document.getElementById('b-slider')
+    };
+    const hslSliders = {
+        h: document.getElementById('h-slider'),
+        s: document.getElementById('s-slider'),
+        l: document.getElementById('l-slider')
+    };
+    const badges = {
+        r: document.getElementById('r-val'), g: document.getElementById('g-val'), b: document.getElementById('b-val'),
+        h: document.getElementById('h-val'), s: document.getElementById('s-val'), l: document.getElementById('l-val')
+    };
+    const monsterToggle = document.getElementById('monster-mode-toggle');
+
+    // モノクロモードの切り替え
+    monsterToggle.addEventListener('change', () => {
+        const targetPane = document.getElementById('target-pane');
+        if (monsterToggle.checked) {
+            targetPane.classList.add('monochrome-mode');
+            playSound('square', 150, 0.05, 0.5);
+        } else {
+            targetPane.classList.remove('monochrome-mode');
+            playSound('sine', 440, 0.05, 0.5);
+        }
+    });
+
+    // 色変換ユーティリティ
+    function rgbToHsl(r, g, b) {
+        r /= 255; g /= 255; b /= 255;
+        const max = Math.max(r, g, b), min = Math.min(r, g, b);
+        let h, s, l = (max + min) / 2;
+        if (max === min) { h = s = 0; } else {
+            const d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch (max) {
+                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                case g: h = (b - r) / d + 2; break;
+                case b: h = (r - g) / d + 4; break;
+            }
+            h /= 6;
+        }
+        return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+    }
+
+    function hslToRgb(h, s, l) {
+        h /= 360; s /= 100; l /= 100;
+        let r, g, b;
+        if (s === 0) { r = g = b = l; } else {
+            const hue2rgb = (p, q, t) => {
+                if (t < 0) t += 1; if (t > 1) t -= 1;
+                if (t < 1/6) return p + (q - p) * 6 * t;
+                if (t < 1/2) return q;
+                if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                return p;
+            };
+            const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+            const p = 2 * l - q;
+            r = hue2rgb(p, q, h + 1/3);
+            g = hue2rgb(p, q, h);
+            b = hue2rgb(p, q, h - 1/3);
+        }
+        return { r: Math.round(r * 255), g: Math.round(g * 255), b: Math.round(b * 255) };
+    }
+
+    function rgbToHex(r, g, b) {
+        return "#" + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+    }
+
+    // スライダー更新時の処理
+    function updateFromRgb() {
+        if (isRevealed) return;
+        current.r = parseInt(rgbSliders.r.value);
+        current.g = parseInt(rgbSliders.g.value);
+        current.b = parseInt(rgbSliders.b.value);
+        const hsl = rgbToHsl(current.r, current.g, current.b);
+        hslSliders.h.value = hsl.h;
+        hslSliders.s.value = hsl.s;
+        hslSliders.l.value = hsl.l;
+        syncUI();
+        playSound('sine', 100 + (current.r + current.g + current.b) / 4, 0.02, 0.1);
+    }
+
+    function updateFromHsl() {
+        if (isRevealed) return;
+        const h = parseInt(hslSliders.h.value);
+        const s = parseInt(hslSliders.s.value);
+        const l = parseInt(hslSliders.l.value);
+        const rgb = hslToRgb(h, s, l);
+        current.r = rgb.r;
+        current.g = rgb.g;
+        current.b = rgb.b;
+        rgbSliders.r.value = current.r;
+        rgbSliders.g.value = current.g;
+        rgbSliders.b.value = current.b;
+        syncUI();
+        playSound('sine', 100 + h, 0.02, 0.1);
+    }
+
+    // UIの同期
+    function syncUI() {
+        badges.r.innerText = current.r;
+        badges.g.innerText = current.g;
+        badges.b.innerText = current.b;
+        badges.h.innerText = hslSliders.h.value + "°";
+        badges.s.innerText = hslSliders.s.value + "%";
+        badges.l.innerText = hslSliders.l.value + "%";
+
+        const hex = rgbToHex(current.r, current.g, current.b);
+        document.getElementById('user-pane').style.backgroundColor = hex;
+        document.getElementById('user-hex').innerText = hex;
+        cursor.style.backgroundColor = hex; // カーソルの色を更新
+        
+        if (!isRevealed) {
+            document.getElementById('match-score').innerText = "??.?";
+        }
+    }
+
+    // スコア計算
+    function calculateScoreValue() {
+        const dR = target.r - current.r;
+        const dG = target.g - current.g;
+        const dB = target.b - current.b;
+        const dist = Math.sqrt(dR*dR + dG*dG + dB*dB);
+        const maxDist = Math.sqrt(255*255 * 3);
+        let score = Math.max(0, 100 - (dist / maxDist * 100));
+        
+        // 90点以上を出すのを難しくする「ボーナス」ロジック
+        if (score > 90) {
+            score = 90 + Math.pow((score - 90) / 10, 2) * 10;
+        }
+        return score;
+    }
+
+    // 答え合わせ
+    function revealAnswer() {
+        if (isRevealed) return;
+        isRevealed = true;
+        
+        // 答え合わせ時はお題をカラーで表示（モノクロモードでも）
+        document.getElementById('target-pane').classList.remove('monochrome-mode');
+        
+        const score = calculateScoreValue();
+        const targetHex = rgbToHex(target.r, target.g, target.b);
+        
+        const hexEl = document.getElementById('target-hex');
+        hexEl.innerText = targetHex;
+        hexEl.classList.remove('hidden-code');
+        
+        const scoreEl = document.getElementById('match-score');
+        scoreEl.innerText = score.toFixed(1);
+        
+        // スコアによる色の変化
+        scoreEl.style.color = score > 95 ? "var(--g-color)" : (score > 80 ? "var(--h-color)" : "var(--accent)");
+
+        const msg = document.getElementById('feedback-msg');
+        if (score > 99.9) { msg.innerText = "神の色彩感覚！完璧です。"; msg.style.color = "var(--g-color)"; }
+        else if (score > 95) { msg.innerText = "素晴らしい！ほぼ同じ色です。"; msg.style.color = "var(--g-color)"; }
+        else if (score > 85) { msg.innerText = "惜しい！かなり近いです。"; msg.style.color = "var(--h-color)"; }
+        else { msg.innerText = "もう少し修行が必要かもしれません。"; msg.style.color = "#718096"; }
+
+        document.getElementById('check-btn').style.display = 'none';
+
+        // 正解音
+        const baseFreq = 400;
+        playSound('triangle', baseFreq + (score * 4), 0.1, 0.5);
+        setTimeout(() => playSound('triangle', baseFreq + 50 + (score * 4), 0.1, 0.5), 100);
+        if (score > 90) setTimeout(() => playSound('triangle', baseFreq + 100 + (score * 4), 0.1, 0.5), 200);
+    }
+
+    // 新しいゲームを開始（お題の色をランダムに決定）
+    function initNewGame() {
+        isRevealed = false;
+
+        // 【ここでお題の色をランダムに決定しています】
+        target = {
+            r: Math.floor(Math.random() * 256),
+            g: Math.floor(Math.random() * 256),
+            b: Math.floor(Math.random() * 256)
+        };
+        
+        const tHex = rgbToHex(target.r, target.g, target.b);
+        const targetPane = document.getElementById('target-pane');
+        targetPane.style.backgroundColor = tHex;
+        
+        // モード維持
+        if (monsterToggle.checked) {
+            targetPane.classList.add('monochrome-mode');
+        } else {
+            targetPane.classList.remove('monochrome-mode');
+        }
+        
+        // 表示のリセット
+        const el = document.getElementById('target-hex');
+        el.innerText = "#??????";
+        el.classList.add('hidden-code');
+        
+        const scoreEl = document.getElementById('match-score');
+        scoreEl.innerText = "??.?";
+        scoreEl.style.color = "var(--accent)";
+
+        document.getElementById('feedback-msg').innerText = "お題に合わせて調整してください";
+        document.getElementById('feedback-msg').style.color = "#718096";
+        document.getElementById('check-btn').style.display = 'inline-block';
+        
+        playSound('sine', 600, 0.05, 0.3);
+        updateFromRgb();
+    }
+
+    // イベントリスナー
+    Object.values(rgbSliders).forEach(s => s.addEventListener('input', updateFromRgb));
+    Object.values(hslSliders).forEach(s => s.addEventListener('input', updateFromHsl));
+
+    // 初期化実行
+    initNewGame();
+</script>
+
+</body>
+</html>
