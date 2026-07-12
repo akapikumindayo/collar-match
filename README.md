@@ -12,3 +12,5 @@ Geminiと作成しました。
 
 プレイはこちらから。
  (https://akapikumindayo.github.io/collar-match/)
+紹介映像
+https://youtu.be/MQg5D454Cn8
